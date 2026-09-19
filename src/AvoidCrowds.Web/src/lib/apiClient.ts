@@ -13,3 +13,20 @@ export async function getHealth(): Promise<HealthResponse> {
 
   return response.json()
 }
+
+export interface StationSuggestion {
+  id: string
+  name: string
+  lat: number
+  lon: number
+}
+
+export async function getStations(query: string, signal?: AbortSignal): Promise<StationSuggestion[]> {
+  const response = await fetch(`${API_BASE_URL}/api/stations?query=${encodeURIComponent(query)}`, { signal })
+
+  if (!response.ok) {
+    throw new Error(`Station search failed with status ${response.status}`)
+  }
+
+  return response.json()
+}

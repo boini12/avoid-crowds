@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getHealth } from '../lib/apiClient'
+import { getHealth, type StationSuggestion } from '../lib/apiClient'
+import StationAutocomplete from '../components/StationAutocomplete.vue'
 
 type ApiStatus = 'checking' | 'reachable' | 'unreachable'
 
 const apiStatus = ref<ApiStatus>('checking')
+const fromStation = ref<StationSuggestion | null>(null)
+const toStation = ref<StationSuggestion | null>(null)
 
 onMounted(async () => {
   try {
@@ -32,5 +35,9 @@ onMounted(async () => {
       <span v-else-if="apiStatus === 'reachable'">API reachable</span>
       <span v-else>API unreachable</span>
     </p>
+    <div class="flex w-full flex-col gap-4">
+      <StationAutocomplete v-model="fromStation" label="From" />
+      <StationAutocomplete v-model="toStation" label="To" />
+    </div>
   </main>
 </template>
