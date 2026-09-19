@@ -70,6 +70,18 @@ function backToStart() {
         </p>
       </div>
 
+      <div
+        v-for="(warning, index) in detail.crowdWarnings"
+        :key="`${warning.stopName}-${warning.kickoffTime}-${index}`"
+        class="rounded-md border border-amber-300 bg-amber-50 px-4 py-3"
+      >
+        <p class="font-medium text-amber-900">Soccer fans might be travelling with you.</p>
+        <p class="text-sm text-amber-800">
+          {{ warning.homeTeam }} vs {{ warning.awayTeam }} in {{ warning.stopName }} at
+          {{ formatStopTime(warning.kickoffTime, warning.timeZone) }}
+        </p>
+      </div>
+
       <ol class="flex flex-col gap-3">
         <li
           v-for="(stop, index) in detail.stops"
