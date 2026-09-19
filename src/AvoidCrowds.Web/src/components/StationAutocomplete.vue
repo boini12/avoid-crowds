@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { getStations, type StationSuggestion } from '../lib/apiClient'
+import ErrorBanner from './ErrorBanner.vue'
 
 const MIN_QUERY_LENGTH = 2
 const DEBOUNCE_MS = 250
@@ -21,9 +22,11 @@ const suggestions = ref<StationSuggestion[]>([])
 const isOpen = ref(false)
 const isLoading = ref(false)
 const highlightedIndex = ref(-1)
+const error = ref<string | null>(null)
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
 let abortController: AbortController | undefined
+let lastQuery = ''
 
 watch(
   () => props.modelValue,
@@ -35,6 +38,7 @@ watch(
 function onInput() {
   emit('update:modelValue', null)
   highlightedIndex.value = -1
+  error.value = null
 
   clearTimeout(debounceTimer)
   abortController?.abort()
@@ -50,19 +54,29 @@ function onInput() {
 }
 
 async function search(text: string) {
+  lastQuery = text
   abortController = new AbortController()
   isLoading.value = true
+  error.value = null
 
   try {
     suggestions.value = await getStations(text, abortController.signal)
     isOpen.value = true
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
+  } catch (caught) {
+    if (caught instanceof DOMException && caught.name === 'AbortError') {
       return
     }
     suggestions.value = []
+    isOpen.value = false
+    error.value = 'Could not load station suggestions.'
   } finally {
     isLoading.value = false
+  }
+}
+
+function retry() {
+  if (lastQuery) {
+    void search(lastQuery)
   }
 }
 
@@ -133,5 +147,11 @@ function onBlur() {
       </li>
     </ul>
     <p v-else-if="isLoading" class="absolute top-full mt-1 text-sm text-gray-500">Searching…</p>
+    <ErrorBanner
+      v-if="error"
+      :message="error"
+      class="absolute top-full z-10 mt-1 w-full"
+      @retry="retry"
+    />
   </div>
 </template>

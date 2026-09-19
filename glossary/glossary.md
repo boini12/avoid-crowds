@@ -27,8 +27,9 @@ The two search modes for the train-search form, corresponding to transitous's
 - **Arrive-by**: `arriveBy=true` — the entered date/time is an upper bound on
   arrival; search walks backward in time.
 
-Both modes roll into adjacent calendar days (up to a 2-day cap) if fewer than
-5 direct trains are found on the anchor day.
+For v1, both modes are bounded to the anchor calendar day only — the search
+does not roll into adjacent days, even if fewer than 5 direct trains are
+found. See [[design-decisions#search-is-bounded-to-the-anchor-calendar-day-only-v1]].
 
 ## Soccer-fan match
 

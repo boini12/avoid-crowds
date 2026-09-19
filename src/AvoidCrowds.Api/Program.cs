@@ -1,4 +1,5 @@
 using AvoidCrowds.Api.Geocoding;
+using AvoidCrowds.Api.Journeys;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,14 @@ builder.Services.AddHttpClient<IGeocodeClient, TransitousGeocodeClient>(client =
     client.DefaultRequestHeaders.UserAgent.ParseAdd(transitousUserAgent);
 });
 
+builder.Services.AddHttpClient<IJourneyPlanClient, TransitousJourneyPlanClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Transitous:BaseUrl"] ?? "https://api.transitous.org/");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(transitousUserAgent);
+});
+
+builder.Services.AddControllers();
+
 var app = builder.Build();
 
 app.UseCors(FrontendCorsPolicy);
@@ -37,6 +46,8 @@ app.MapGet("/api/stations", async (string? query, IGeocodeClient geocodeClient, 
     var matches = await geocodeClient.SearchAsync(query, cancellationToken);
     return Results.Ok(GermanStationFilter.Filter(matches));
 });
+
+app.MapControllers();
 
 app.Run();
 
