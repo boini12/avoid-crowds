@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getJourneys, type DirectTrain } from '../lib/apiClient'
 import { journeySearchParams } from '../lib/journeySearchStore'
+import { selectedTripId } from '../lib/selectedTrainStore'
 import ErrorBanner from '../components/ErrorBanner.vue'
 
 const router = useRouter()
@@ -47,6 +48,11 @@ function formatDepartureTime(departureTime: string) {
   return new Date(departureTime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function selectTrain(train: DirectTrain) {
+  selectedTripId.value = train.tripId
+  void router.push('/train')
+}
+
 function backToStart() {
   void router.push('/')
 }
@@ -63,13 +69,15 @@ function backToStart() {
     <template v-else>
       <p v-if="trains.length === 0" class="text-gray-600">No direct trains found.</p>
       <ul v-else class="flex flex-col gap-3">
-        <li
-          v-for="(train, index) in trains"
-          :key="index"
-          class="rounded-md border border-gray-200 px-4 py-3"
-        >
-          <p class="font-medium text-gray-900">{{ train.origin }} → {{ train.destination }}</p>
-          <p class="text-sm text-gray-600">Departs {{ formatDepartureTime(train.departureTime) }}</p>
+        <li v-for="train in trains" :key="train.tripId">
+          <button
+            type="button"
+            class="w-full rounded-md border border-gray-200 px-4 py-3 text-left hover:bg-gray-50"
+            @click="selectTrain(train)"
+          >
+            <p class="font-medium text-gray-900">{{ train.origin }} → {{ train.destination }}</p>
+            <p class="text-sm text-gray-600">Departs {{ formatDepartureTime(train.departureTime) }}</p>
+          </button>
         </li>
       </ul>
     </template>

@@ -25,11 +25,33 @@ public class TransitousJourneyPlanClient(HttpClient httpClient) : IJourneyPlanCl
             .Select(itinerary => new JourneyItinerary(
                 itinerary.Transfers,
                 itinerary.Legs
-                    .Select(leg => new JourneyLeg(leg.Mode, leg.From.Name, leg.To.Name, leg.StartTime, leg.EndTime))
+                    .Select(leg => new JourneyLeg(leg.Mode, leg.From.Name, leg.To.Name, leg.StartTime, leg.EndTime, leg.TripId))
                     .ToList()))
             .ToList()
             ?? [];
     }
+
+    public async Task<TripDetails?> GetTripAsync(string tripId, CancellationToken cancellationToken)
+    {
+        var url = $"api/v6/trip?tripId={Uri.EscapeDataString(tripId)}";
+        var itinerary = await httpClient.GetFromJsonAsync<TransitousItinerary>(url, cancellationToken);
+        var leg = itinerary?.Legs.FirstOrDefault();
+
+        if (leg is null)
+        {
+            return null;
+        }
+
+        return new TripDetails(
+            leg.StartTime,
+            leg.EndTime,
+            ToTripStop(leg.From),
+            ToTripStop(leg.To),
+            (leg.IntermediateStops ?? []).Select(ToTripStop).ToList());
+    }
+
+    private static TripStop ToTripStop(TransitousPlace place) =>
+        new(place.Name, place.Arrival, place.Departure, place.Tz ?? "");
 
     // transitous defaults searchWindow to 900s (15 min), which under-returns
     // same-day trains long before the 5-result target is reached. Bound the
@@ -58,7 +80,13 @@ public class TransitousJourneyPlanClient(HttpClient httpClient) : IJourneyPlanCl
         [property: JsonPropertyName("startTime")] DateTimeOffset StartTime,
         [property: JsonPropertyName("endTime")] DateTimeOffset EndTime,
         [property: JsonPropertyName("from")] TransitousPlace From,
-        [property: JsonPropertyName("to")] TransitousPlace To);
+        [property: JsonPropertyName("to")] TransitousPlace To,
+        [property: JsonPropertyName("tripId")] string TripId = "",
+        [property: JsonPropertyName("intermediateStops")] List<TransitousPlace>? IntermediateStops = null);
 
-    private sealed record TransitousPlace([property: JsonPropertyName("name")] string Name);
+    private sealed record TransitousPlace(
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("tz")] string? Tz = null,
+        [property: JsonPropertyName("arrival")] DateTimeOffset? Arrival = null,
+        [property: JsonPropertyName("departure")] DateTimeOffset? Departure = null);
 }

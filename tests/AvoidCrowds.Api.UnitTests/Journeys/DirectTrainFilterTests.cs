@@ -23,7 +23,8 @@ public class DirectTrainFilterTests
                         "Berlin Hbf",
                         "Hamburg Hbf",
                         Boundary,
-                        Boundary.AddHours(2)),
+                        Boundary.AddHours(2),
+                        "trip-1"),
                 ]),
         };
 
@@ -35,6 +36,7 @@ public class DirectTrainFilterTests
         Assert.That(result[0].Origin, Is.EqualTo("Berlin Hbf"));
         Assert.That(result[0].Destination, Is.EqualTo("Hamburg Hbf"));
         Assert.That(result[0].DepartureTime, Is.EqualTo(Boundary));
+        Assert.That(result[0].TripId, Is.EqualTo("trip-1"));
     }
 
     [Test]

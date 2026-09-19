@@ -24,7 +24,7 @@ public static class DirectTrainFilter
         return closestToBoundary
             .Take(MaxResults)
             .OrderBy(leg => leg.StartTime)
-            .Select(leg => new DirectTrain(leg.FromName, leg.ToName, leg.StartTime))
+            .Select(leg => new DirectTrain(leg.FromName, leg.ToName, leg.StartTime, leg.TripId))
             .ToList();
     }
 

@@ -1,3 +1,9 @@
 namespace AvoidCrowds.Api.Journeys;
 
-public record JourneyLeg(string Mode, string FromName, string ToName, DateTimeOffset StartTime, DateTimeOffset EndTime);
+public record JourneyLeg(
+    string Mode,
+    string FromName,
+    string ToName,
+    DateTimeOffset StartTime,
+    DateTimeOffset EndTime,
+    string TripId = "");
