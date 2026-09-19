@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AvoidCrowds.Api/AvoidCrowds.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AvoidCrowds.Api.UnitTests/AvoidCrowds.Api.UnitTests.csproj" />
+    <Project Path="tests/AvoidCrowds.Api.IntegrationTests/AvoidCrowds.Api.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

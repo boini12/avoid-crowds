@@ -3,6 +3,11 @@ bin/
 obj/
 *.user
 
+# Node
+node_modules/
+dist/
+*.local
+
 # IDE
 .vs/
 .idea/

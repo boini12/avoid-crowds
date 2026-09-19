@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: dotnet run",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["run", "--project", "src/AvoidCrowds.Api"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "dotnet",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Application started\\.|Now listening on:"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "group": "avoidcrowds"
+      }
+    },
+    {
+      "label": "Frontend: npm run dev",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/src/AvoidCrowds.Web"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "ready in|VITE"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "group": "avoidcrowds"
+      }
+    },
+    {
+      "label": "Start: Backend + Frontend",
+      "dependsOn": ["Backend: dotnet run", "Frontend: npm run dev"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
