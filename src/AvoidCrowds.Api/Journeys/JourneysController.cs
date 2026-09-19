@@ -23,4 +23,21 @@ public class JourneysController(IJourneyPlanClient journeyPlanClient) : Controll
         var itineraries = await journeyPlanClient.PlanAsync(query, cancellationToken);
         return Ok(DirectTrainFilter.Filter(itineraries, query.ArriveBy, query.Time));
     }
+
+    [HttpGet("trip")]
+    public async Task<IActionResult> GetTrip(string? tripId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(tripId))
+        {
+            return BadRequest();
+        }
+
+        var trip = await journeyPlanClient.GetTripAsync(tripId, cancellationToken);
+        if (trip is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(TrainDetailBuilder.Build(trip));
+    }
 }

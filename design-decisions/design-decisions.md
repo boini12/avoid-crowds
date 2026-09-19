@@ -97,6 +97,26 @@ the MVC pattern for this repository going forward. Existing endpoints
 rather than migrated in the same change, to keep this change scoped to the
 journeys endpoint.
 
+### Train detail is fetched fresh via tripId, not embedded in the results payload
+The results list already returns everything needed to display 5 rows, but not
+each train's en-route stops — fetching `intermediateStops` for all 5 results
+up front would mean 5x the transitous load for detail nobody may ever view.
+Instead each `DirectTrain` carries transitous's `tripId` for its leg, and
+selecting a train re-fetches full detail on demand via transitous's
+`/api/v6/trip?tripId=` endpoint (exposed as `GET /api/journeys/trip`). This
+mirrors the existing results-list pattern (`journeySearchStore` holds search
+criteria, not results, and `ResultsView` re-fetches on mount) with a
+`selectedTripId` store holding only the identifier, and gives the detail view
+its own loading/error/retry cycle per the ticket's requirement, independent
+of the results fetch.
+
+### Origin/destination are folded into the stop list, not shown separately
+transitous's `intermediateStops` is exclusive of the leg's `from`/`to` places.
+Per the "en route" definition, origin and destination count as stops too, so
+the backend (`TrainDetailBuilder`) prepends/appends them to the intermediate
+stops into one ordered list — the frontend renders a single stop list rather
+than special-casing the endpoints.
+
 ### Stack (carried over from existing README, not re-litigated)
 ASP.NET Core minimal API backend (`src/AvoidCrowds.Api`), Vue 3 + TypeScript
 + Vite frontend (`src/AvoidCrowds.Web`), xUnit backend tests
