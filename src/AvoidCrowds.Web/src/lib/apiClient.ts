@@ -35,6 +35,7 @@ export interface DirectTrain {
   origin: string
   destination: string
   departureTime: string
+  tripId: string
 }
 
 export interface JourneySearchRequest {
@@ -56,6 +57,34 @@ export async function getJourneys(request: JourneySearchRequest, signal?: AbortS
 
   if (!response.ok) {
     throw new Error(`Journey search failed with status ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export interface TrainStop {
+  name: string
+  arrival: string | null
+  departure: string | null
+  timeZone: string
+}
+
+export interface TrainDetail {
+  origin: string
+  destination: string
+  departureTime: string
+  departureTimeZone: string
+  arrivalTime: string
+  arrivalTimeZone: string
+  stops: TrainStop[]
+}
+
+export async function getTrainDetail(tripId: string, signal?: AbortSignal): Promise<TrainDetail> {
+  const params = new URLSearchParams({ tripId })
+  const response = await fetch(`${API_BASE_URL}/api/journeys/trip?${params.toString()}`, { signal })
+
+  if (!response.ok) {
+    throw new Error(`Train detail lookup failed with status ${response.status}`)
   }
 
   return response.json()
