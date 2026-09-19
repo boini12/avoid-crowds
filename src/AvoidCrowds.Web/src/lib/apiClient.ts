@@ -30,3 +30,33 @@ export async function getStations(query: string, signal?: AbortSignal): Promise<
 
   return response.json()
 }
+
+export interface DirectTrain {
+  origin: string
+  destination: string
+  departureTime: string
+}
+
+export interface JourneySearchRequest {
+  fromStationId: string
+  toStationId: string
+  time: string
+  arriveBy: boolean
+}
+
+export async function getJourneys(request: JourneySearchRequest, signal?: AbortSignal): Promise<DirectTrain[]> {
+  const params = new URLSearchParams({
+    fromStationId: request.fromStationId,
+    toStationId: request.toStationId,
+    time: request.time,
+    arriveBy: String(request.arriveBy),
+  })
+
+  const response = await fetch(`${API_BASE_URL}/api/journeys?${params.toString()}`, { signal })
+
+  if (!response.ok) {
+    throw new Error(`Journey search failed with status ${response.status}`)
+  }
+
+  return response.json()
+}

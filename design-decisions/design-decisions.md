@@ -8,11 +8,15 @@ specs so it isn't re-litigated or re-explained each time.
 ### Search rolls forward/backward in time, not just within one day
 "Depart-after" walks forward from the entered time; "arrive-by" walks
 backward — standard journey-planner semantics — rather than always searching
-forward regardless of mode. If fewer than 5 direct trains exist on the
-anchor day, the search rolls into adjacent days, capped at **2 days**
-(reduced from an initial 7-day recommendation — the user judged 2 days more
-than enough for any real German route with realistic daily service).
-See [[glossary#depart-after--arrive-by-search]].
+forward regardless of mode. See [[glossary#depart-after--arrive-by-search]].
+
+### Search is bounded to the anchor calendar day only (v1)
+An earlier version of this decision had the search roll into adjacent days
+(capped at 2) when fewer than 5 direct trains were found on the anchor day.
+Revisited during implementation: for v1, the search window is bounded to
+exactly the anchor calendar day (in the query time's own offset) and does not
+roll into adjacent days. Rolling into adjacent days is deferred as a separate
+concern for a later version. See [[glossary#depart-after--arrive-by-search]].
 
 ### Trains only, direct connections only, no S-Bahn (v1)
 transitous's `RAIL` mode family bundles highspeed/long-distance/night/
@@ -84,6 +88,14 @@ stateless, single-shared-use lookup tool. No accounts, no per-user data, no
 database — the backend is a thin business-logic layer over transitous and
 OpenLigaDB plus an in-memory cache (which is ephemeral, not real
 persistence).
+
+### API endpoints follow the MVC controller pattern, not minimal-API lambdas
+The journeys endpoint was reworked from a `MapGet` lambda in `Program.cs` into
+a `JourneysController` (ASP.NET Core MVC), at the user's request, to follow
+the MVC pattern for this repository going forward. Existing endpoints
+(`/api/health`, `/api/stations`) were left as minimal-API lambdas for now
+rather than migrated in the same change, to keep this change scoped to the
+journeys endpoint.
 
 ### Stack (carried over from existing README, not re-litigated)
 ASP.NET Core minimal API backend (`src/AvoidCrowds.Api`), Vue 3 + TypeScript
