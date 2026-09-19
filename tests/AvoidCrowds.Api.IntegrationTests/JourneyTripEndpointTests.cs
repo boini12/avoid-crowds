@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AvoidCrowds.Api.Journeys;
+using AvoidCrowds.Api.SoccerCrowdCheck;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,6 +34,11 @@ public class JourneyTripEndpointTests
                         new TripStop("Berlin Hbf", null, Departure, "Europe/Berlin"),
                         new TripStop("Hamburg Hbf", Arrival, null, "Europe/Berlin"),
                         [new TripStop("Wittenberge", Departure.AddMinutes(50), Departure.AddMinutes(52), "Europe/Berlin")])));
+
+                // Avoid a real OpenLigaDB call from the crowd-check path this
+                // endpoint now also runs — this file only cares about trip mapping.
+                services.RemoveAll<ICrowdCheckService>();
+                services.AddSingleton<ICrowdCheckService>(new FakeCrowdCheckService([]));
             });
         });
         _client = _factory.CreateClient();
@@ -82,5 +88,11 @@ public class JourneyTripEndpointTests
 
         public Task<TripDetails?> GetTripAsync(string tripId, CancellationToken cancellationToken) =>
             Task.FromResult(tripId == KnownTripId ? knownTrip : null);
+    }
+
+    private sealed class FakeCrowdCheckService(IReadOnlyList<CrowdWarning> warnings) : ICrowdCheckService
+    {
+        public Task<IReadOnlyList<CrowdWarning>> CheckAsync(IReadOnlyList<TripStop> stops, CancellationToken cancellationToken) =>
+            Task.FromResult(warnings);
     }
 }
