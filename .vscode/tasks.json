@@ -60,6 +60,39 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "Backend: unit tests",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["test", "tests/AvoidCrowds.Api.UnitTests"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "group": "avoidcrowds"
+      }
+    },
+    {
+      "label": "Backend: integration tests",
+      "type": "shell",
+      "command": "dotnet",
+      "args": ["test", "tests/AvoidCrowds.Api.IntegrationTests"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": "test",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "avoidcrowds"
+      }
     }
   ]
 }

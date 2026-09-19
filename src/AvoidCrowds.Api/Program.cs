@@ -1,3 +1,5 @@
+using AvoidCrowds.Api.Geocoding;
+
 var builder = WebApplication.CreateBuilder(args);
 
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
@@ -9,11 +11,32 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(frontendOrigin).AllowAnyHeader().AllowAnyMethod());
 });
 
+// transitous usage policy requires a User-Agent identifying the client.
+var transitousUserAgent = builder.Configuration["Transitous:UserAgent"]
+    ?? "avoid-crowds/0.1 (non-commercial; https://github.com/avoid-crowds)";
+
+builder.Services.AddHttpClient<IGeocodeClient, TransitousGeocodeClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Transitous:BaseUrl"] ?? "https://api.transitous.org/");
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(transitousUserAgent);
+});
+
 var app = builder.Build();
 
 app.UseCors(FrontendCorsPolicy);
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+
+app.MapGet("/api/stations", async (string? query, IGeocodeClient geocodeClient, CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(query))
+    {
+        return Results.Ok(Array.Empty<StationSuggestion>());
+    }
+
+    var matches = await geocodeClient.SearchAsync(query, cancellationToken);
+    return Results.Ok(GermanStationFilter.Filter(matches));
+});
 
 app.Run();
 
