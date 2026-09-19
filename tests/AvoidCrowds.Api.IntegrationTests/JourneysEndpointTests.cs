@@ -77,5 +77,8 @@ public class JourneysEndpointTests
     {
         public Task<IReadOnlyList<JourneyItinerary>> PlanAsync(JourneyPlanQuery query, CancellationToken cancellationToken) =>
             Task.FromResult(itineraries);
+
+        public Task<TripDetails?> GetTripAsync(string tripId, CancellationToken cancellationToken) =>
+            Task.FromResult<TripDetails?>(null);
     }
 }
