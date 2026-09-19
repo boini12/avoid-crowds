@@ -1,10 +1,11 @@
+using AvoidCrowds.Api.SoccerCrowdCheck;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AvoidCrowds.Api.Journeys;
 
 [ApiController]
 [Route("api/journeys")]
-public class JourneysController(IJourneyPlanClient journeyPlanClient) : ControllerBase
+public class JourneysController(IJourneyPlanClient journeyPlanClient, ICrowdCheckService crowdCheckService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get(
@@ -38,6 +39,22 @@ public class JourneysController(IJourneyPlanClient journeyPlanClient) : Controll
             return NotFound();
         }
 
-        return Ok(TrainDetailBuilder.Build(trip));
+        var detail = TrainDetailBuilder.Build(trip);
+        var crowdWarnings = await crowdCheckService.CheckAsync(detail.Stops, cancellationToken);
+
+        // TrainDetail itself stays a pure Journeys-domain mapping (like the rest of
+        // this file's DTOs); the crowd-check result is folded in only at the response
+        // boundary, where this endpoint is already the one place both domains meet.
+        return Ok(new
+        {
+            detail.Origin,
+            detail.Destination,
+            detail.DepartureTime,
+            detail.DepartureTimeZone,
+            detail.ArrivalTime,
+            detail.ArrivalTimeZone,
+            detail.Stops,
+            CrowdWarnings = crowdWarnings,
+        });
     }
 }
