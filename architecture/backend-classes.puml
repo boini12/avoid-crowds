@@ -1,0 +1,299 @@
+@startuml backend-classes
+title AvoidCrowds.Api — backend class structure
+
+skinparam shadowing false
+skinparam linetype ortho
+hide empty members
+
+package "AvoidCrowds.Api" {
+
+  class Program <<static>> {
+    .. minimal API host ..
+    + GET /api/health
+    + GET /api/stations?query
+    --
+    registers CORS (FrontendOrigin)
+    registers typed HttpClients
+    registers FixtureCache (singleton)
+    registers ICrowdCheckService (scoped)
+  }
+
+  package Geocoding {
+
+    interface IGeocodeClient {
+      + SearchAsync(query, ct) : IReadOnlyList<GeocodeMatch>
+    }
+
+    class TransitousGeocodeClient {
+      - httpClient : HttpClient
+      + SearchAsync(query, ct) : IReadOnlyList<GeocodeMatch>
+      .. GET api/v1/geocode?text= ..
+    }
+
+    class GermanStationFilter <<static>> {
+      - {static} MinLat = 47.3
+      - {static} MaxLat = 55.1
+      - {static} MinLon = 5.9
+      - {static} MaxLon = 15.0
+      + {static} Filter(matches) : IReadOnlyList<StationSuggestion>
+      - {static} IsInsideGermany(match) : bool
+    }
+
+    class GeocodeMatch <<record>> {
+      + Type : string
+      + Id : string
+      + Name : string
+      + Lat : double
+      + Lon : double
+    }
+
+    class StationSuggestion <<record>> {
+      + Id : string
+      + Name : string
+      + Lat : double
+      + Lon : double
+    }
+
+    IGeocodeClient <|.. TransitousGeocodeClient
+    IGeocodeClient ..> GeocodeMatch : returns
+    GermanStationFilter ..> GeocodeMatch : filters
+    GermanStationFilter ..> StationSuggestion : maps to
+  }
+
+  package Journeys {
+
+    class JourneysController <<ApiController>> {
+      .. route: api/journeys ..
+      + Get(fromStationId, toStationId, time, arriveBy, ct) : IActionResult
+      + GetTrip(tripId, ct) : IActionResult
+    }
+
+    interface IJourneyPlanClient {
+      + PlanAsync(query, ct) : IReadOnlyList<JourneyItinerary>
+      + GetTripAsync(tripId, ct) : TripDetails?
+    }
+
+    class TransitousJourneyPlanClient {
+      - httpClient : HttpClient
+      - {static} NumItineraries = 5
+      + PlanAsync(query, ct) : IReadOnlyList<JourneyItinerary>
+      + GetTripAsync(tripId, ct) : TripDetails?
+      - {static} AnchorDaySearchWindowSeconds(query) : int
+      .. GET api/v6/plan · api/v6/trip ..
+    }
+
+    class DirectTrainFilter <<static>> {
+      - {static} MaxResults = 5
+      + {static} Filter(itineraries, arriveBy, boundary) : IReadOnlyList<DirectTrain>
+      - {static} IsDirectRailJourney(itinerary) : bool
+      - {static} RespectsBoundary(leg, arriveBy, boundary) : bool
+    }
+
+    class TrainDetailBuilder <<static>> {
+      + {static} Build(trip) : TrainDetail
+      .. origin + intermediates + destination ..
+    }
+
+    class RailModes <<static>> {
+      + {static} Allowed : IReadOnlyList<string>
+      .. HIGHSPEED_RAIL, LONG_DISTANCE, ..
+      .. NIGHT_RAIL, REGIONAL_FAST_RAIL, ..
+      .. REGIONAL_RAIL (no SUBURBAN/SUBWAY) ..
+    }
+
+    class JourneyPlanQuery <<record>> {
+      + FromStationId : string
+      + ToStationId : string
+      + Time : DateTimeOffset
+      + ArriveBy : bool
+    }
+
+    class JourneyItinerary <<record>> {
+      + Transfers : int
+      + Legs : IReadOnlyList<JourneyLeg>
+    }
+
+    class JourneyLeg <<record>> {
+      + Mode : string
+      + FromName : string
+      + ToName : string
+      + StartTime : DateTimeOffset
+      + EndTime : DateTimeOffset
+      + TripId : string
+    }
+
+    class DirectTrain <<record>> {
+      + Origin : string
+      + Destination : string
+      + DepartureTime : DateTimeOffset
+      + TripId : string
+    }
+
+    class TripDetails <<record>> {
+      + DepartureTime : DateTimeOffset
+      + ArrivalTime : DateTimeOffset
+      + From : TripStop
+      + To : TripStop
+      + IntermediateStops : IReadOnlyList<TripStop>
+    }
+
+    class TrainDetail <<record>> {
+      + Origin : string
+      + Destination : string
+      + DepartureTime : DateTimeOffset
+      + DepartureTimeZone : string
+      + ArrivalTime : DateTimeOffset
+      + ArrivalTimeZone : string
+      + Stops : IReadOnlyList<TripStop>
+    }
+
+    class TripStop <<record>> {
+      + Name : string
+      + Arrival : DateTimeOffset?
+      + Departure : DateTimeOffset?
+      + TimeZone : string
+    }
+
+    IJourneyPlanClient <|.. TransitousJourneyPlanClient
+    JourneysController --> IJourneyPlanClient
+    JourneysController ..> DirectTrainFilter
+    JourneysController ..> TrainDetailBuilder
+    JourneysController ..> JourneyPlanQuery : builds
+
+    TransitousJourneyPlanClient ..> RailModes : transitModes
+    DirectTrainFilter ..> RailModes : allowed modes
+
+    JourneyItinerary "1" *-- "1..*" JourneyLeg
+    TripDetails "1" *-- "2..*" TripStop
+    TrainDetail "1" *-- "2..*" TripStop
+
+    DirectTrainFilter ..> JourneyItinerary : in
+    DirectTrainFilter ..> DirectTrain : out
+    TrainDetailBuilder ..> TripDetails : in
+    TrainDetailBuilder ..> TrainDetail : out
+  }
+
+  package SoccerCrowdCheck {
+
+    interface ICrowdCheckService {
+      + CheckAsync(stops, ct) : IReadOnlyList<CrowdWarning>
+    }
+
+    class CrowdCheckService {
+      - fixtureCache : FixtureCache
+      + CheckAsync(stops, ct) : IReadOnlyList<CrowdWarning>
+      .. one fetch per (league, season) touched by the stops ..
+    }
+
+    class FixtureCache <<singleton>> {
+      - _cache : ConcurrentDictionary<(League, Season), Lazy<Task<...>>>
+      + GetSeasonFixturesAsync(league, season, ct) : IReadOnlyList<Fixture>
+      .. evicts failed fetches so retry re-fetches ..
+    }
+
+    interface IFixtureClient {
+      + GetSeasonFixturesAsync(league, season, ct) : IReadOnlyList<Fixture>
+    }
+
+    class OpenLigaDbFixtureClient {
+      - httpClient : HttpClient
+      + GetSeasonFixturesAsync(league, season, ct) : IReadOnlyList<Fixture>
+      .. GET getmatchdata/{league}/{season} ..
+    }
+
+    class CrowdMatcher <<static>> {
+      - {static} Window = 3 hours
+      + {static} Match(stops, fixtures) : IReadOnlyList<CrowdWarning>
+      + {static} StopTime(stop) : DateTimeOffset?
+      - {static} IsWithinWindow(stopTime, kickoff) : bool
+    }
+
+    class BundesligaCities <<static>> {
+      + {static} All : IReadOnlyList<CityDefinition>
+      + {static} MatchesStop(stopName, fixtureCity) : bool
+    }
+
+    class CityDefinition <<record>> {
+      + Name : string
+      + FixtureCityNames : IReadOnlyList<string>
+      + StationNameAliases : IReadOnlyList<string>
+    }
+
+    class BundesligaSeason <<static>> {
+      + {static} ForDate(date) : int
+      .. month >= 7 ? year : year - 1 ..
+    }
+
+    class Leagues <<static>> {
+      + {static} Bundesliga1And2 : IReadOnlyList<string>
+      .. bl1, bl2 ..
+    }
+
+    class Fixture <<record>> {
+      + HomeTeam : string
+      + AwayTeam : string
+      + KickoffTime : DateTimeOffset
+      + LocationCity : string?
+    }
+
+    class CrowdWarning <<record>> {
+      + StopName : string
+      + HomeTeam : string
+      + AwayTeam : string
+      + KickoffTime : DateTimeOffset
+      + TimeZone : string
+    }
+
+    ICrowdCheckService <|.. CrowdCheckService
+    IFixtureClient <|.. OpenLigaDbFixtureClient
+    CrowdCheckService --> FixtureCache
+    FixtureCache --> IFixtureClient
+    CrowdCheckService ..> CrowdMatcher
+    CrowdCheckService ..> BundesligaSeason
+    CrowdCheckService ..> Leagues
+    CrowdMatcher ..> BundesligaCities : city match
+    CrowdMatcher ..> Fixture
+    CrowdMatcher ..> CrowdWarning : out
+    BundesligaCities "1" *-- "*" CityDefinition
+    IFixtureClient ..> Fixture : returns
+  }
+
+  Program ..> IGeocodeClient
+  Program ..> GermanStationFilter
+  Program ..> IJourneyPlanClient
+  Program ..> IFixtureClient
+  Program ..> FixtureCache
+  Program ..> ICrowdCheckService
+
+  JourneysController --> ICrowdCheckService
+  CrowdMatcher ..> TripStop : reads
+}
+
+package "External APIs" {
+  class Transitous <<external>> {
+    api.transitous.org
+    --
+    api/v1/geocode
+    api/v6/plan
+    api/v6/trip
+  }
+
+  class OpenLigaDb <<external>> {
+    api.openligadb.de
+    --
+    getmatchdata/[league]/[season]
+  }
+}
+
+TransitousGeocodeClient --> Transitous
+TransitousJourneyPlanClient --> Transitous
+OpenLigaDbFixtureClient --> OpenLigaDb
+
+note right of JourneysController
+  GET api/journeys/trip is the only place
+  the Journeys and SoccerCrowdCheck domains
+  meet: crowd warnings are folded into the
+  response at the boundary, not into TrainDetail.
+end note
+
+@enduml

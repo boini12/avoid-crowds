@@ -1,0 +1,231 @@
+@startuml frontend-classes
+title AvoidCrowds.Web — frontend structure (Vue 3 + TypeScript)
+
+skinparam shadowing false
+skinparam linetype ortho
+hide empty members
+
+package "AvoidCrowds.Web" {
+
+  package "app" {
+
+    class main_ts <<entry>> {
+      + createApp(App).use(router).mount("#app")
+    }
+
+    class App_vue <<component>> {
+      .. renders <RouterView/> ..
+    }
+
+    class router <<vue-router>> {
+      + history : createWebHistory()
+      --
+      route / : SearchView
+      route /results : ResultsView
+      route /train : TrainDetailView
+    }
+
+    main_ts --> App_vue
+    main_ts --> router
+    App_vue ..> router : RouterView
+  }
+
+  package "views" {
+
+    class SearchView_vue <<component>> {
+      - apiStatus : Ref<"checking"|"reachable"|"unreachable">
+      - fromStation : Ref<StationSuggestion|null>
+      - toStation : Ref<StationSuggestion|null>
+      - date : Ref<string>
+      - time : Ref<string>
+      - arriveBy : Ref<boolean>
+      - isSameStation : Computed<boolean>
+      - canSubmit : Computed<boolean>
+      + onMounted() : health check
+      + onSubmit() : store params, push /results
+    }
+
+    class ResultsView_vue <<component>> {
+      - trains : Ref<DirectTrain[]>
+      - isLoading : Ref<boolean>
+      - error : Ref<string|null>
+      + onMounted() : redirect to / if no params
+      + search() : getJourneys(...)
+      + selectTrain(train) : set tripId, push /train
+      + formatDepartureTime(iso) : string
+      + backToStart()
+    }
+
+    class TrainDetailView_vue <<component>> {
+      - detail : Ref<TrainDetail|null>
+      - isLoading : Ref<boolean>
+      - error : Ref<string|null>
+      + onMounted() : redirect to / if no tripId
+      + load() : getTrainDetail(tripId)
+      + formatStopTime(iso, timeZone) : string|null
+      + backToStart()
+      .. renders crowd warnings + stop list ..
+    }
+  }
+
+  package "components" {
+
+    class StationAutocomplete_vue <<component>> {
+      - MIN_QUERY_LENGTH = 2
+      - DEBOUNCE_MS = 250
+      - query : Ref<string>
+      - suggestions : Ref<StationSuggestion[]>
+      - isOpen : Ref<boolean>
+      - isLoading : Ref<boolean>
+      - highlightedIndex : Ref<number>
+      - error : Ref<string|null>
+      - abortController : AbortController?
+      __ props __
+      + label : string
+      + modelValue : StationSuggestion|null
+      __ emits __
+      + update:modelValue(station)
+      __ methods __
+      + onInput() : debounce + abort in-flight
+      + search(text)
+      + retry()
+      + selectStation(station)
+      + onKeydown(event) : arrows / Enter / Escape
+      + onBlur()
+    }
+
+    class ErrorBanner_vue <<component>> {
+      __ props __
+      + message : string
+      __ emits __
+      + retry()
+    }
+  }
+
+  package "lib" {
+
+    class apiClient <<module>> {
+      - API_BASE_URL = VITE_API_BASE_URL ?? http://localhost:5027
+      + getHealth() : HealthResponse
+      + getStations(query, signal?) : StationSuggestion[]
+      + getJourneys(request, signal?) : DirectTrain[]
+      + getTrainDetail(tripId, signal?) : TrainDetail
+    }
+
+    interface HealthResponse {
+      + status : string
+    }
+
+    interface StationSuggestion {
+      + id : string
+      + name : string
+      + lat : number
+      + lon : number
+    }
+
+    interface JourneySearchRequest {
+      + fromStationId : string
+      + toStationId : string
+      + time : string
+      + arriveBy : boolean
+    }
+
+    interface DirectTrain {
+      + origin : string
+      + destination : string
+      + departureTime : string
+      + tripId : string
+    }
+
+    interface TrainDetail {
+      + origin : string
+      + destination : string
+      + departureTime : string
+      + departureTimeZone : string
+      + arrivalTime : string
+      + arrivalTimeZone : string
+      + stops : TrainStop[]
+      + crowdWarnings : CrowdWarning[]
+    }
+
+    interface TrainStop {
+      + name : string
+      + arrival : string|null
+      + departure : string|null
+      + timeZone : string
+    }
+
+    interface CrowdWarning {
+      + stopName : string
+      + homeTeam : string
+      + awayTeam : string
+      + kickoffTime : string
+      + timeZone : string
+    }
+
+    class journeySearchStore <<module>> {
+      + journeySearchParams : Ref<JourneySearchParams|null>
+    }
+
+    interface JourneySearchParams {
+      + fromStation : StationSuggestion
+      + toStation : StationSuggestion
+      + time : string
+      + arriveBy : boolean
+    }
+
+    class selectedTrainStore <<module>> {
+      + selectedTripId : Ref<string|null>
+    }
+
+    class dateTime <<module>> {
+      + toIsoStringWithLocalOffset(date, time) : string
+      .. keeps the browser's UTC offset so the ..
+      .. backend knows the intended calendar day ..
+    }
+
+    apiClient ..> HealthResponse
+    apiClient ..> StationSuggestion
+    apiClient ..> JourneySearchRequest
+    apiClient ..> DirectTrain
+    apiClient ..> TrainDetail
+    TrainDetail "1" *-- "*" TrainStop
+    TrainDetail "1" *-- "*" CrowdWarning
+    journeySearchStore ..> JourneySearchParams
+    JourneySearchParams --> StationSuggestion
+  }
+
+  router --> SearchView_vue
+  router --> ResultsView_vue
+  router --> TrainDetailView_vue
+
+  SearchView_vue *-- StationAutocomplete_vue : from / to
+  SearchView_vue ..> apiClient : getHealth
+  SearchView_vue ..> dateTime
+  SearchView_vue --> journeySearchStore : writes
+
+  ResultsView_vue ..> apiClient : getJourneys
+  ResultsView_vue --> journeySearchStore : reads
+  ResultsView_vue --> selectedTrainStore : writes
+  ResultsView_vue *-- ErrorBanner_vue
+
+  TrainDetailView_vue ..> apiClient : getTrainDetail
+  TrainDetailView_vue --> selectedTrainStore : reads
+  TrainDetailView_vue *-- ErrorBanner_vue
+
+  StationAutocomplete_vue ..> apiClient : getStations
+  StationAutocomplete_vue *-- ErrorBanner_vue
+}
+
+class "AvoidCrowds.Api" as Api <<backend>>
+
+apiClient --> Api : fetch (JSON over HTTP)
+
+note bottom of journeySearchStore
+  State is shared through plain module-level
+  `ref`s rather than a store library; it lives
+  only in memory, so a reload of /results or
+  /train redirects back to the search page.
+end note
+
+@enduml
