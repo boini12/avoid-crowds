@@ -69,6 +69,14 @@ export interface TrainStop {
   timeZone: string
 }
 
+export interface CrowdWarning {
+  stopName: string
+  homeTeam: string
+  awayTeam: string
+  kickoffTime: string
+  timeZone: string
+}
+
 export interface TrainDetail {
   origin: string
   destination: string
@@ -77,6 +85,7 @@ export interface TrainDetail {
   arrivalTime: string
   arrivalTimeZone: string
   stops: TrainStop[]
+  crowdWarnings: CrowdWarning[]
 }
 
 export async function getTrainDetail(tripId: string, signal?: AbortSignal): Promise<TrainDetail> {

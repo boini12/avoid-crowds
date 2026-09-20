@@ -1,5 +1,6 @@
 using AvoidCrowds.Api.Geocoding;
 using AvoidCrowds.Api.Journeys;
+using AvoidCrowds.Api.SoccerCrowdCheck;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,14 @@ builder.Services.AddHttpClient<IJourneyPlanClient, TransitousJourneyPlanClient>(
     client.BaseAddress = new Uri(builder.Configuration["Transitous:BaseUrl"] ?? "https://api.transitous.org/");
     client.DefaultRequestHeaders.UserAgent.ParseAdd(transitousUserAgent);
 });
+
+builder.Services.AddHttpClient<IFixtureClient, OpenLigaDbFixtureClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["OpenLigaDb:BaseUrl"] ?? "https://api.openligadb.de/");
+});
+
+builder.Services.AddSingleton<FixtureCache>();
+builder.Services.AddScoped<ICrowdCheckService, CrowdCheckService>();
 
 builder.Services.AddControllers();
 
