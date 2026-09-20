@@ -1,0 +1,60 @@
+@startuml trip-detail-sequence
+title Selecting a train and checking it for soccer crowds
+
+skinparam shadowing false
+autonumber
+
+actor Traveler
+participant "ResultsView" as Results
+participant "TrainDetailView" as Detail
+participant "apiClient" as Client
+participant "JourneysController" as Controller
+participant "TransitousJourneyPlanClient" as Plan
+participant "TrainDetailBuilder" as Builder
+participant "CrowdCheckService" as Crowd
+participant "FixtureCache" as Cache
+participant "OpenLigaDbFixtureClient" as Fixtures
+participant "CrowdMatcher" as Matcher
+participant "transitous" as Transitous
+participant "OpenLigaDB" as OpenLigaDb
+
+Traveler -> Results : click a direct train
+Results -> Results : selectedTripId = train.tripId
+Results -> Detail : router.push("/train")
+
+Detail -> Client : getTrainDetail(tripId)
+Client -> Controller : GET /api/journeys/trip?tripId=...
+
+Controller -> Plan : GetTripAsync(tripId)
+Plan -> Transitous : GET api/v6/trip?tripId=...
+Transitous --> Plan : leg with from/to/intermediateStops
+Plan --> Controller : TripDetails
+
+Controller -> Builder : Build(trip)
+Builder --> Controller : TrainDetail (origin + intermediates + destination)
+
+Controller -> Crowd : CheckAsync(detail.Stops)
+Crowd -> Crowd : seasons = distinct BundesligaSeason.ForDate(stop times)
+
+loop for each (league bl1/bl2, season)
+  Crowd -> Cache : GetSeasonFixturesAsync(league, season)
+  alt not cached
+    Cache -> Fixtures : GetSeasonFixturesAsync(league, season)
+    Fixtures -> OpenLigaDb : GET getmatchdata/{league}/{season}
+    OpenLigaDb --> Fixtures : whole-season matches
+    Fixtures --> Cache : IReadOnlyList<Fixture>
+  else cached
+    Cache --> Crowd : shared Lazy<Task> result
+  end
+end
+
+Crowd -> Matcher : Match(stops, fixtures)
+Matcher -> Matcher : kickoff within 3h of stop time\nAND BundesligaCities.MatchesStop(stop, city)
+Matcher --> Crowd : IReadOnlyList<CrowdWarning>
+Crowd --> Controller : warnings
+
+Controller --> Client : TrainDetail + crowdWarnings
+Client --> Detail : TrainDetail
+Detail -> Traveler : stop list + "Soccer fans might be travelling with you."
+
+@enduml

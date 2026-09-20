@@ -1,0 +1,58 @@
+@startuml system-overview
+title avoid-crowds — system overview
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+actor Traveler
+
+node "Browser" {
+  component "AvoidCrowds.Web\nVue 3 · TypeScript · Vite · Tailwind" as Web {
+    component "views\n(Search, Results, TrainDetail)" as WebViews
+    component "lib/apiClient" as WebApi
+    component "in-memory stores\n(journeySearch, selectedTrain)" as WebStores
+  }
+}
+
+node "ASP.NET Core (net10.0)" {
+  component "AvoidCrowds.Api" as Api {
+    component "Program\nminimal API: /api/health, /api/stations" as ApiProgram
+    component "Journeys\nJourneysController + filters" as ApiJourneys
+    component "Geocoding\nstation search + German filter" as ApiGeocoding
+    component "SoccerCrowdCheck\nfixture lookup + matching" as ApiCrowd
+    database "FixtureCache\nin-memory, per (league, season)" as ApiCache
+  }
+}
+
+cloud "transitous\napi.transitous.org" as Transitous {
+  component "api/v1/geocode" as TGeocode
+  component "api/v6/plan" as TPlan
+  component "api/v6/trip" as TTrip
+}
+
+cloud "OpenLigaDB\napi.openligadb.de" as OpenLigaDb {
+  component "getmatchdata/[league]/[season]" as OMatches
+}
+
+Traveler --> WebViews
+WebViews --> WebApi
+WebViews --> WebStores
+WebApi --> Api : HTTP/JSON, CORS-allowed origin
+
+ApiProgram --> ApiGeocoding
+ApiJourneys --> ApiCrowd
+ApiCrowd --> ApiCache
+
+ApiGeocoding --> TGeocode
+ApiJourneys --> TPlan
+ApiJourneys --> TTrip
+ApiCache --> OMatches
+
+note right of Api
+  No database and no persistence: every
+  response is derived from the two upstream
+  APIs. The only state is FixtureCache, held
+  in process memory for the app's lifetime.
+end note
+
+@enduml
