@@ -34,9 +34,10 @@ en route" feature nearly non-functional on the free key. OpenLigaDB has no
 API key/auth at all, covers both Bundesliga 1 and 2 (football-data.org's
 free tier was also considered but excludes Bundesliga 2 entirely), and has
 generous informal rate headroom (~1000 req/hr). Trade-off accepted:
-OpenLigaDB has no venue geo-coordinates, only a `locationCity` string (see
-the city-matching decision below), and no date-query endpoint (see the
-caching decision below).
+OpenLigaDB has no venue geo-coordinates, and its `location` object is null
+on every fixture of the seasons this app queries (see the city-matching
+decision below), and it has no date-query endpoint (see the caching decision
+below).
 
 ### City matching via curated static list, not geo-radius or generic parsing
 OpenLigaDB provides no venue coordinates, ruling out radius-based matching.
@@ -45,6 +46,20 @@ suffixes) was rejected as fragile against compound/disambiguated city names
 (e.g. "Frankfurt (Main)" vs "Frankfurt (Oder)"). Since Bundesliga 1+2 is a
 small, bounded set (~36 clubs), a curated static city list is more reliable
 and easy to maintain. See [[glossary#city-match-stop--fixture]].
+
+### Venue city is derived from the home team, not from the fixture's location
+The curated list was originally keyed only on OpenLigaDB's
+`location.locationCity`. That field turned out to be null for *every* fixture
+in `getmatchdata/{bl1,bl2}/{season}` — not the occasional data-quality gap
+the spec assumed — so the check silently never produced a warning. The home
+team is the reliable venue signal: the curated list therefore maps each
+club's OpenLigaDB `teamName` to its home city, and a fixture's venue city is
+resolved from `team1`. `location.locationCity` is still consulted first when
+present, since it is the more direct statement of where a match is played
+(and would correctly handle a relocated home fixture). Because an unmapped
+club fails silently in exactly the same way, `BundesligaCitiesTests` pins
+every club name OpenLigaDB reports across the surrounding seasons and
+asserts each resolves to a city.
 
 ### Soccer-fan match window compares kickoff to the stop's own time, not the journey's overall start/end
 The original spec sentence describing this was circular/ambiguous ("checks

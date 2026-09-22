@@ -14,7 +14,7 @@ public class CrowdMatcherTests
     {
         // Arrange
         var stop = new TripStop("Berlin Hbf", Kickoff.AddHours(1), null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
+        var fixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -22,7 +22,7 @@ public class CrowdMatcherTests
         // Assert
         Assert.That(result, Has.Count.EqualTo(1));
         Assert.That(result[0].StopName, Is.EqualTo("Berlin Hbf"));
-        Assert.That(result[0].HomeTeam, Is.EqualTo("Union Berlin"));
+        Assert.That(result[0].HomeTeam, Is.EqualTo("1. FC Union Berlin"));
         Assert.That(result[0].AwayTeam, Is.EqualTo("Hertha BSC"));
         Assert.That(result[0].KickoffTime, Is.EqualTo(Kickoff));
         Assert.That(result[0].TimeZone, Is.EqualTo("Europe/Berlin"));
@@ -33,7 +33,7 @@ public class CrowdMatcherTests
     {
         // Arrange
         var stop = new TripStop("Berlin Hbf", Kickoff.AddHours(-3), null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
+        var fixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -47,7 +47,7 @@ public class CrowdMatcherTests
     {
         // Arrange
         var stop = new TripStop("Berlin Hbf", Kickoff.AddHours(3), null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
+        var fixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -61,7 +61,7 @@ public class CrowdMatcherTests
     {
         // Arrange
         var stop = new TripStop("Berlin Hbf", Kickoff.AddHours(3).AddMinutes(1), null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
+        var fixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -71,11 +71,27 @@ public class CrowdMatcherTests
     }
 
     [Test]
-    public void Match_FixtureWithMissingLocation_IsExcluded()
+    public void Match_FixtureWithMissingLocation_StillMatchesViaHomeTeamCity()
+    {
+        // Arrange: OpenLigaDB returns a null location for every fixture, so the
+        // home team has to carry the venue city on its own.
+        var stop = new TripStop("Dortmund Hbf", Kickoff, null, "Europe/Berlin");
+        var fixture = new Fixture("Borussia Dortmund", "SV Werder Bremen", Kickoff, null);
+
+        // Act
+        var result = CrowdMatcher.Match([stop], [fixture]);
+
+        // Assert
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(result[0].StopName, Is.EqualTo("Dortmund Hbf"));
+    }
+
+    [Test]
+    public void Match_FixtureWithUnknownHomeTeamAndNoLocation_IsExcluded()
     {
         // Arrange
         var stop = new TripStop("Berlin Hbf", Kickoff, null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, null);
+        var fixture = new Fixture("FC Somewhere Else", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -89,7 +105,7 @@ public class CrowdMatcherTests
     {
         // Arrange
         var stop = new TripStop("Hamburg Hbf", Kickoff, null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
+        var fixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -104,8 +120,8 @@ public class CrowdMatcherTests
         // Arrange
         var berlinStop = new TripStop("Berlin Hbf", Kickoff.AddMinutes(-30), Kickoff.AddMinutes(-25), "Europe/Berlin");
         var hamburgStop = new TripStop("Hamburg Hbf", Kickoff.AddHours(2), null, "Europe/Berlin");
-        var berlinFixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
-        var hamburgFixture = new Fixture("Hamburger SV", "FC St. Pauli", Kickoff.AddHours(2), "Hamburg");
+        var berlinFixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
+        var hamburgFixture = new Fixture("Hamburger SV", "FC St. Pauli", Kickoff.AddHours(2), null);
 
         // Act
         var result = CrowdMatcher.Match([berlinStop, hamburgStop], [berlinFixture, hamburgFixture]);
@@ -120,7 +136,7 @@ public class CrowdMatcherTests
     {
         // Arrange
         var stop = new TripStop("Hannover Hbf", Kickoff, null, "Europe/Berlin");
-        var fixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
+        var fixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
 
         // Act
         var result = CrowdMatcher.Match([stop], [fixture]);
@@ -135,8 +151,8 @@ public class CrowdMatcherTests
         // Arrange: origin has departure only, destination has arrival only - both must still be checked.
         var origin = new TripStop("Berlin Hbf", null, Kickoff, "Europe/Berlin");
         var destination = new TripStop("Hamburg Hbf", Kickoff.AddHours(2), null, "Europe/Berlin");
-        var berlinFixture = new Fixture("Union Berlin", "Hertha BSC", Kickoff, "Berlin");
-        var hamburgFixture = new Fixture("Hamburger SV", "FC St. Pauli", Kickoff.AddHours(2), "Hamburg");
+        var berlinFixture = new Fixture("1. FC Union Berlin", "Hertha BSC", Kickoff, null);
+        var hamburgFixture = new Fixture("Hamburger SV", "FC St. Pauli", Kickoff.AddHours(2), null);
 
         // Act
         var result = CrowdMatcher.Match([origin, destination], [berlinFixture, hamburgFixture]);

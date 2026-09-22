@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace AvoidCrowds.Api.Journeys;
@@ -12,7 +13,7 @@ public class TransitousJourneyPlanClient(HttpClient httpClient) : IJourneyPlanCl
         var url = "api/v6/plan"
             + $"?fromPlace={Uri.EscapeDataString(query.FromStationId)}"
             + $"&toPlace={Uri.EscapeDataString(query.ToStationId)}"
-            + $"&time={Uri.EscapeDataString(query.Time.ToString("O"))}"
+            + $"&time={Uri.EscapeDataString(TransitousTime(query.Time))}"
             + $"&arriveBy={(query.ArriveBy ? "true" : "false")}"
             + "&maxTransfers=0"
             + $"&transitModes={modes}"
@@ -49,6 +50,13 @@ public class TransitousJourneyPlanClient(HttpClient httpClient) : IJourneyPlanCl
             ToTripStop(leg.To),
             (leg.IntermediateStops ?? []).Select(ToTripStop).ToList());
     }
+
+    // transitous misreads the round-trip "O" format's fractional seconds
+    // (e.g. 19:00:00.0000000+02:00) and drops the offset, treating the time as
+    // UTC - which silently skipped two hours of departures. Plain UTC seconds
+    // are unambiguous.
+    private static string TransitousTime(DateTimeOffset time) =>
+        time.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
 
     private static TripStop ToTripStop(TransitousPlace place) =>
         new(place.Name, place.Arrival, place.Departure, place.Tz ?? "");
