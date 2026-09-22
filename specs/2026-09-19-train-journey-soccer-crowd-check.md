@@ -97,10 +97,11 @@ en-route stop within a 3-hour window of the train's time there.
   collapsed into a single generic notice.
 - OpenLigaDB or transitous request fails/times out: inline error banner +
   retry button, no partial/broken result rendering.
-- A stop's city matches a Bundesliga club's curated city, but the fixture's
-  `location` is null in OpenLigaDB (known data-quality gap) — that fixture
-  cannot be matched to a venue city and is excluded from consideration for
-  that stop.
+- A fixture's `location` is null in OpenLigaDB (in practice: all of them) —
+  the venue city is derived from the home team via the curated club list
+  instead. Only a fixture whose home team is absent from that list (a club
+  outside Bundesliga 1/2, or a club OpenLigaDB has renamed) cannot be tied to
+  a venue city and is excluded from consideration.
 
 ## Integration points
 

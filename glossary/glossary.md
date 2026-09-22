@@ -43,12 +43,15 @@ can have multiple matches.
 ## City match (stop ↔ fixture)
 
 The mechanism used to decide whether an en-route stop is "in" a fixture's
-venue city: a curated static list mapping each Bundesliga 1/2 club's home
-city to the canonical city name(s)/aliases as they appear in German station
-names (e.g. "Frankfurt" → matches "Frankfurt (Main) Hbf" but not
-"Frankfurt (Oder)"). Chosen over generic station-name-suffix parsing (fragile
-on compound/disambiguated city names) and over geo-radius matching
-(OpenLigaDB doesn't provide venue coordinates, only a city name string).
+venue city: a curated static list mapping each Bundesliga 1/2 club to its
+home city, and that city to the canonical city name(s)/aliases as they appear
+in German station names (e.g. "Frankfurt" → matches "Frankfurt (Main) Hbf"
+but not "Frankfurt (Oder)"). A fixture's venue city comes from its home team,
+since OpenLigaDB's own `location` field is null on every fixture. Clubs
+playing outside their namesake city are mapped explicitly (FC Schalke 04 →
+Gelsenkirchen, TSG Hoffenheim → Sinsheim). Chosen over generic
+station-name-suffix parsing (fragile on compound/disambiguated city names)
+and over geo-radius matching (OpenLigaDB doesn't provide venue coordinates).
 
 ## German-only station scope
 

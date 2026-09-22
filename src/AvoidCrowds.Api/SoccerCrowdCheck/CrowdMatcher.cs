@@ -8,9 +8,14 @@ public static class CrowdMatcher
 
     public static IReadOnlyList<CrowdWarning> Match(IReadOnlyList<TripStop> stops, IEnumerable<Fixture> fixtures)
     {
-        // A fixture with no location city (a known OpenLigaDB data-quality gap)
-        // can't be tied to a venue city, so it's excluded up front.
-        var locatedFixtures = fixtures.Where(fixture => fixture.LocationCity is not null).ToList();
+        // Resolve each fixture's venue city once. A fixture whose home team is
+        // in neither the curated club list nor a known location.city (a club
+        // outside Bundesliga 1/2, or a name OpenLigaDB has since changed)
+        // can't be tied to a venue city and is excluded up front.
+        var locatedFixtures = fixtures
+            .Select(fixture => (Fixture: fixture, City: BundesligaCities.VenueCity(fixture.LocationCity, fixture.HomeTeam)))
+            .Where(located => located.City is not null)
+            .ToList();
 
         var warnings = new List<CrowdWarning>();
 
@@ -22,10 +27,10 @@ public static class CrowdMatcher
                 continue;
             }
 
-            foreach (var fixture in locatedFixtures)
+            foreach (var (fixture, city) in locatedFixtures)
             {
                 if (IsWithinWindow(stopTime.Value, fixture.KickoffTime)
-                    && BundesligaCities.MatchesStop(stop.Name, fixture.LocationCity!))
+                    && BundesligaCities.MatchesStop(stop.Name, city!))
                 {
                     warnings.Add(new CrowdWarning(stop.Name, fixture.HomeTeam, fixture.AwayTeam, fixture.KickoffTime, stop.TimeZone));
                 }
