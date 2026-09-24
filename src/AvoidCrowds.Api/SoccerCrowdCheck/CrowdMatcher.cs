@@ -13,7 +13,7 @@ public static class CrowdMatcher
         // outside Bundesliga 1/2, or a name OpenLigaDB has since changed)
         // can't be tied to a venue city and is excluded up front.
         var locatedFixtures = fixtures
-            .Select(fixture => (Fixture: fixture, City: BundesligaCities.VenueCity(fixture.LocationCity, fixture.HomeTeam)))
+            .Select(fixture => (Fixture: fixture, City: BundesligaCities.GetVenueCity(fixture.LocationCity, fixture.HomeTeam)))
             .Where(located => located.City is not null)
             .ToList();
 
