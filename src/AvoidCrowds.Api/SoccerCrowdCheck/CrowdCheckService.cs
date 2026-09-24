@@ -7,7 +7,7 @@ public class CrowdCheckService(FixtureCache fixtureCache) : ICrowdCheckService
     public async Task<IReadOnlyList<CrowdWarning>> CheckAsync(IReadOnlyList<TripStop> stops, CancellationToken cancellationToken)
     {
         var seasons = stops
-            .Select(CrowdMatcher.StopTime)
+            .Select(stop => stop.StopTime)
             .Where(time => time is not null)
             .Select(time => BundesligaSeason.ForDate(time!.Value))
             .Distinct()

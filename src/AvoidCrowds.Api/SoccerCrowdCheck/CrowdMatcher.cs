@@ -21,7 +21,7 @@ public static class CrowdMatcher
 
         foreach (var stop in stops)
         {
-            var stopTime = StopTime(stop);
+            var stopTime = stop.StopTime;
             if (stopTime is null)
             {
                 continue;
@@ -39,10 +39,6 @@ public static class CrowdMatcher
 
         return warnings;
     }
-
-    // Origin has no arrival, destination has no departure; either time works
-    // for an intermediate stop's brief dwell against a 3-hour window.
-    public static DateTimeOffset? StopTime(TripStop stop) => stop.Arrival ?? stop.Departure;
 
     private static bool IsWithinWindow(DateTimeOffset stopTime, DateTimeOffset kickoff) => (stopTime - kickoff).Duration() <= Window;
 }
