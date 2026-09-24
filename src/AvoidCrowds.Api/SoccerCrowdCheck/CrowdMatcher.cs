@@ -30,7 +30,7 @@ public static class CrowdMatcher
             foreach (var (fixture, city) in locatedFixtures)
             {
                 if (IsWithinWindow(stopTime.Value, fixture.KickoffTime)
-                    && BundesligaCities.MatchesStop(stop.Name, city!))
+                    && city!.MatchesStop(stop.Name))
                 {
                     warnings.Add(new CrowdWarning(stop.Name, fixture.HomeTeam, fixture.AwayTeam, fixture.KickoffTime, stop.TimeZone));
                 }

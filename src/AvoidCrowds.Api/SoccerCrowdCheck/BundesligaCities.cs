@@ -69,7 +69,4 @@ public static class BundesligaCities
             ?? All.FirstOrDefault(candidate =>
                 candidate.HomeTeamNames.Contains(homeTeam, StringComparer.OrdinalIgnoreCase));
     }
-
-    public static bool MatchesStop(string stopName, CityDefinition city) =>
-        city.StationNameAliases.Any(alias => stopName.Contains(alias, StringComparison.OrdinalIgnoreCase));
 }

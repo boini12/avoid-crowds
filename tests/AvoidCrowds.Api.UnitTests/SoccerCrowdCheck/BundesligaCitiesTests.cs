@@ -82,7 +82,7 @@ public class BundesligaCitiesTests
     public void MatchesStop_FrankfurtMainStation_MatchesFrankfurtFixtureCity()
     {
         // Act
-        var result = BundesligaCities.MatchesStop("Frankfurt (Main) Hbf", CityNamed("Frankfurt am Main"));
+        var result = CityNamed("Frankfurt am Main").MatchesStop("Frankfurt (Main) Hbf");
 
         // Assert
         Assert.That(result, Is.True);
@@ -94,7 +94,7 @@ public class BundesligaCitiesTests
         // Act: Frankfurt (Oder) is a distinct city with no Bundesliga 1/2 club - must
         // not be confused with Frankfurt am Main just because both station
         // names start with "Frankfurt".
-        var result = BundesligaCities.MatchesStop("Frankfurt (Oder) Hbf", CityNamed("Frankfurt am Main"));
+        var result = CityNamed("Frankfurt am Main").MatchesStop("Frankfurt (Oder) Hbf");
 
         // Assert
         Assert.That(result, Is.False);
@@ -104,7 +104,7 @@ public class BundesligaCitiesTests
     public void MatchesStop_StationInUnrelatedCity_ReturnsFalse()
     {
         // Act
-        var result = BundesligaCities.MatchesStop("Hamburg Hbf", CityNamed("Berlin"));
+        var result = CityNamed("Berlin").MatchesStop("Hamburg Hbf");
 
         // Assert
         Assert.That(result, Is.False);
@@ -114,7 +114,7 @@ public class BundesligaCitiesTests
     public void MatchesStop_CaseInsensitive_StillMatches()
     {
         // Act
-        var result = BundesligaCities.MatchesStop("berlin hbf", CityNamed("Berlin"));
+        var result = CityNamed("Berlin").MatchesStop("berlin hbf");
 
         // Assert
         Assert.That(result, Is.True);
