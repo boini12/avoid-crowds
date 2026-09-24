@@ -13,7 +13,7 @@ public static class CrowdMatcher
         // outside Bundesliga 1/2, or a name OpenLigaDB has since changed)
         // can't be tied to a venue city and is excluded up front.
         var locatedFixtures = fixtures
-            .Select(fixture => (Fixture: fixture, City: BundesligaCities.VenueCity(fixture.LocationCity, fixture.HomeTeam)))
+            .Select(fixture => (Fixture: fixture, City: BundesligaCities.GetVenueCity(fixture.LocationCity, fixture.HomeTeam)))
             .Where(located => located.City is not null)
             .ToList();
 
@@ -21,7 +21,7 @@ public static class CrowdMatcher
 
         foreach (var stop in stops)
         {
-            var stopTime = StopTime(stop);
+            var stopTime = stop.StopTime;
             if (stopTime is null)
             {
                 continue;
@@ -30,7 +30,7 @@ public static class CrowdMatcher
             foreach (var (fixture, city) in locatedFixtures)
             {
                 if (IsWithinWindow(stopTime.Value, fixture.KickoffTime)
-                    && BundesligaCities.MatchesStop(stop.Name, city!))
+                    && city!.MatchesStop(stop.Name))
                 {
                     warnings.Add(new CrowdWarning(stop.Name, fixture.HomeTeam, fixture.AwayTeam, fixture.KickoffTime, stop.TimeZone));
                 }
@@ -39,10 +39,6 @@ public static class CrowdMatcher
 
         return warnings;
     }
-
-    // Origin has no arrival, destination has no departure; either time works
-    // for an intermediate stop's brief dwell against a 3-hour window.
-    public static DateTimeOffset? StopTime(TripStop stop) => stop.Arrival ?? stop.Departure;
 
     private static bool IsWithinWindow(DateTimeOffset stopTime, DateTimeOffset kickoff) => (stopTime - kickoff).Duration() <= Window;
 }

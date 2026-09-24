@@ -1,11 +1,5 @@
 namespace AvoidCrowds.Api.SoccerCrowdCheck;
 
-public record CityDefinition(
-    string Name,
-    IReadOnlyList<string> FixtureCityNames,
-    IReadOnlyList<string> HomeTeamNames,
-    IReadOnlyList<string> StationNameAliases);
-
 // Curated Bundesliga 1 + 2 home cities, mapped to the name(s) OpenLigaDB
 // reports for a club playing at home there, the city name(s) it reports as a
 // fixture's location.city, and the alias(es) used in German station names.
@@ -64,7 +58,7 @@ public static class BundesligaCities
     // seasons this app queries, so relying on location.city alone would mean
     // never matching anything. location.city is still honoured when present,
     // since it is the more direct statement of where the match is played.
-    public static CityDefinition? VenueCity(string? fixtureCity, string homeTeam)
+    public static CityDefinition? GetVenueCity(string? fixtureCity, string homeTeam)
     {
         var byLocation = fixtureCity is null
             ? null
@@ -75,7 +69,4 @@ public static class BundesligaCities
             ?? All.FirstOrDefault(candidate =>
                 candidate.HomeTeamNames.Contains(homeTeam, StringComparer.OrdinalIgnoreCase));
     }
-
-    public static bool MatchesStop(string stopName, CityDefinition city) =>
-        city.StationNameAliases.Any(alias => stopName.Contains(alias, StringComparison.OrdinalIgnoreCase));
 }

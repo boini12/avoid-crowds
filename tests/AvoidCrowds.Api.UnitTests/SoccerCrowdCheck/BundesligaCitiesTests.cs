@@ -26,21 +26,21 @@ public class BundesligaCitiesTests
     ];
 
     [TestCaseSource(nameof(KnownHomeTeams))]
-    public void VenueCity_KnownHomeTeamWithoutLocation_ResolvesToACity(string homeTeam)
+    public void GetVenueCity_KnownHomeTeamWithoutLocation_ResolvesToACity(string homeTeam)
     {
         // Act
-        var result = BundesligaCities.VenueCity(null, homeTeam);
+        var result = BundesligaCities.GetVenueCity(null, homeTeam);
 
         // Assert
         Assert.That(result, Is.Not.Null, $"'{homeTeam}' is not mapped to a home city.");
     }
 
     [Test]
-    public void VenueCity_HomeTeamPlayingOutsideItsOwnNamesakeCity_ResolvesToTheVenueCity()
+    public void GetVenueCity_HomeTeamPlayingOutsideItsOwnNamesakeCity_ResolvesToTheVenueCity()
     {
         // Act
-        var schalke = BundesligaCities.VenueCity(null, "FC Schalke 04");
-        var hoffenheim = BundesligaCities.VenueCity(null, "TSG Hoffenheim");
+        var schalke = BundesligaCities.GetVenueCity(null, "FC Schalke 04");
+        var hoffenheim = BundesligaCities.GetVenueCity(null, "TSG Hoffenheim");
 
         // Assert
         Assert.That(schalke!.Name, Is.EqualTo("Gelsenkirchen"));
@@ -48,31 +48,31 @@ public class BundesligaCitiesTests
     }
 
     [Test]
-    public void VenueCity_UnknownHomeTeamWithoutLocation_ReturnsNull()
+    public void GetVenueCity_UnknownHomeTeamWithoutLocation_ReturnsNull()
     {
         // Act
-        var result = BundesligaCities.VenueCity(null, "FC Red Bull Salzburg");
+        var result = BundesligaCities.GetVenueCity(null, "FC Red Bull Salzburg");
 
         // Assert
         Assert.That(result, Is.Null);
     }
 
     [Test]
-    public void VenueCity_LocationCityTakesPrecedenceOverHomeTeam()
+    public void GetVenueCity_LocationCityTakesPrecedenceOverHomeTeam()
     {
         // Act: a home fixture moved to another Bundesliga city - the stated
         // location wins over the club's usual home city.
-        var result = BundesligaCities.VenueCity("Köln", "Borussia Dortmund");
+        var result = BundesligaCities.GetVenueCity("Köln", "Borussia Dortmund");
 
         // Assert
         Assert.That(result!.Name, Is.EqualTo("Köln"));
     }
 
     [Test]
-    public void VenueCity_UnknownLocationCity_FallsBackToHomeTeam()
+    public void GetVenueCity_UnknownLocationCity_FallsBackToHomeTeam()
     {
         // Act
-        var result = BundesligaCities.VenueCity("Salzburg", "Borussia Dortmund");
+        var result = BundesligaCities.GetVenueCity("Salzburg", "Borussia Dortmund");
 
         // Assert
         Assert.That(result!.Name, Is.EqualTo("Dortmund"));
@@ -82,7 +82,7 @@ public class BundesligaCitiesTests
     public void MatchesStop_FrankfurtMainStation_MatchesFrankfurtFixtureCity()
     {
         // Act
-        var result = BundesligaCities.MatchesStop("Frankfurt (Main) Hbf", CityNamed("Frankfurt am Main"));
+        var result = CityNamed("Frankfurt am Main").MatchesStop("Frankfurt (Main) Hbf");
 
         // Assert
         Assert.That(result, Is.True);
@@ -94,7 +94,7 @@ public class BundesligaCitiesTests
         // Act: Frankfurt (Oder) is a distinct city with no Bundesliga 1/2 club - must
         // not be confused with Frankfurt am Main just because both station
         // names start with "Frankfurt".
-        var result = BundesligaCities.MatchesStop("Frankfurt (Oder) Hbf", CityNamed("Frankfurt am Main"));
+        var result = CityNamed("Frankfurt am Main").MatchesStop("Frankfurt (Oder) Hbf");
 
         // Assert
         Assert.That(result, Is.False);
@@ -104,7 +104,7 @@ public class BundesligaCitiesTests
     public void MatchesStop_StationInUnrelatedCity_ReturnsFalse()
     {
         // Act
-        var result = BundesligaCities.MatchesStop("Hamburg Hbf", CityNamed("Berlin"));
+        var result = CityNamed("Berlin").MatchesStop("Hamburg Hbf");
 
         // Assert
         Assert.That(result, Is.False);
@@ -114,7 +114,7 @@ public class BundesligaCitiesTests
     public void MatchesStop_CaseInsensitive_StillMatches()
     {
         // Act
-        var result = BundesligaCities.MatchesStop("berlin hbf", CityNamed("Berlin"));
+        var result = CityNamed("Berlin").MatchesStop("berlin hbf");
 
         // Assert
         Assert.That(result, Is.True);
