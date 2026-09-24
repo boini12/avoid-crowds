@@ -63,5 +63,3 @@ app.MapGet(ApiConstants.Routes.Stations, async (string? query, IGeocodeClient ge
 app.MapControllers();
 
 app.Run();
-
-public partial class Program;
